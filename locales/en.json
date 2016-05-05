@@ -1,0 +1,13 @@
+{
+	"settings": {
+		"title": "Pushbullet notifications",
+		"current_user": "Current logged in user",
+		"user": "User:",
+		"email": "Email:",
+		"authorized_error": "Authorization failed, please try again",
+		"login-button": "Log in",
+		"logout-button": "Log out",
+		"intro": "Click on the log in button, and authorize Homey for Pushbullet",
+		"error": "An error has occured."
+  }
+}

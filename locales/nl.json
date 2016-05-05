@@ -1,0 +1,13 @@
+{
+	"settings": {
+		"title": "Pushbullet notificaties",
+		"current_user": "Huidig ingelogde gebruiker",
+		"user": "Gebruiker:",
+		"email": "Email:",
+		"authorized_error": "Autorisatie mislukt, probeer het later nog eens.",
+		"login-button": "Aanmelden",
+		"logout-button": "Afmelden",
+		"intro": "Klik op de aanmeld knop, en autoriseer Homey voor Pushbullet",
+		"error": "Er heeft zich een fout voorgedaan."
+  }
+}

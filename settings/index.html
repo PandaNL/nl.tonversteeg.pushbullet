@@ -1,0 +1,161 @@
+<!doctype html>
+<html>
+    <head>
+
+    </head>
+    <body>
+
+	  <style type="text/css">
+      .view {
+        display: none;
+      }
+      .view.visible {
+        display: block;
+      }
+		</style>
+
+      <h1 data-i18n="settings.title"></h1>
+      <div class="view" id="login">
+        <p data-i18n="settings.intro"></p>
+        <p>
+          <button class="button" onclick="login();" data-i18n="settings.login-button"></button>
+        </p>
+      </div>
+      <div class="view" id="logged-in">
+        <fieldset>
+            <legend data-i18n="settings.current_user"></legend>
+
+            <style>
+              .form_label {
+                width: 100px !important;
+                display: block !important;
+                margin-right: 20px;
+              }
+
+              .form_input {
+                width: 250px !important;
+                display: block !important;
+              }
+
+              select {
+                padding: .5em .75em;
+                vertical-align: middle;
+                font-size: 12px;
+                font-family: inherit;
+                font-weight: inherit;
+                border: 1px solid #aaa;
+                border-radius: 2px;
+                width:270px !important;
+              }
+
+              button {
+                margin-right:15px;
+              }
+            </style>
+
+            <p>Name: <span id="username"></span></p>
+            <p>Email: <span id="email"></span></p>
+          </br>
+            <input type="checkbox" id="pushbullet_ledring" value="pushalot_ledring"> <label for="pushalot_ledring">Light led ring upon sending notification?</label>
+          <p>
+              <button class="button" onclick="logout();" data-i18n="settings.logout-button"></button>
+            </p>
+
+        </fieldset>
+
+	    </div>
+
+        <script type="text/javascript">
+
+        var ledringPreference;
+
+        function onHomeyReady(){
+	          Homey.get('auth', function( err, settings ){
+              if( err ) return Homey.alert(err, 'Error');
+              var logged_in = ( settings && typeof settings.access_token == 'string' );
+              document.getElementById('login').classList.toggle('visible', !logged_in);
+              document.getElementById('logged-in').classList.toggle('visible', logged_in);
+            });
+
+            Homey.get('userinfo', function( err, info ){
+              if( err ) return Homey.alert(err, 'Error');
+              if( info !== null) {
+              document.getElementById('username').innerHTML = info.name || '';
+              document.getElementById('email').innerHTML = info.email || '';
+            }
+            });
+
+            Homey.get('ledring', function( err, ledring ){
+              if( err ) return Homey.alert(err, 'Error');
+              if( ledring != null){
+
+                ledringPreference = ledring;
+                if(ledringPreference['ledring'] == true) {
+                  document.getElementById('pushbullet_ledring').checked = true;
+                } else {
+                  document.getElementById('pushbullet_ledring').checked = false;
+                }
+            }
+            });
+
+            Homey.on( 'authorized', function( success ){
+				if( success === false ) alert( __('authorized_error') )
+          update();
+			});
+
+            Homey.ready();
+        }
+
+        function update( callback ) {
+			Homey.get('auth', function( err, settings ){
+				if( err ) return Homey.alert(err, 'error');
+		        var logged_in = ( settings && typeof settings.access_token == 'string' );
+		        document.getElementById('login').classList.toggle('visible', !logged_in);
+		        document.getElementById('logged-in').classList.toggle('visible', logged_in);
+
+		        if( typeof callback == 'function' ) callback();
+	        });
+          setTimeout(getUserInfo, 2000);
+        }
+
+        function getUserInfo(){
+          Homey.get('userinfo', function( err, info ){
+            if( err ) return Homey.alert(err, 'Error');
+            document.getElementById('username').innerHTML = info.name || '';
+            document.getElementById('email').innerHTML = info.email || '';
+          });
+        }
+
+        function login(){
+            console.log('login()')
+            Homey.api('POST', '/settings/authorize', {}, function(err, url){
+          if( err ) return Homey.alert('Error', 'error');
+
+          var width	= 600;
+          var height	= 600;
+          var left	= (screen.width/2)-(width/2);
+          var top		= (screen.height/2)-(height/2);
+
+          auth_dialog = window.open(url, "auth_dialog", "width=" + width + ", height=" + height + ", left=" + left + ", top=" + top + ", menubar=no, status=no, toolbar=no");
+            })
+          }
+
+        function logout() {
+          Homey.set('auth', {}, function( err, settings ){
+              if( err ) return alert(err);
+
+              document.getElementById('login').classList.toggle('visible', true);
+              document.getElementById('logged-in').classList.toggle('visible', false);
+            });
+        }
+
+        document.getElementById('pushbullet_ledring').onclick = function(){
+          ledringPreference = {
+            'ledring': document.getElementById('pushbullet_ledring').checked
+          }
+          Homey.set('ledring', ledringPreference );
+        }
+        </script>
+
+    </body>
+</html>

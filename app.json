@@ -1,0 +1,72 @@
+{
+    "id": "nl.tonversteeg.pushbullet",
+    "name": {
+        "en": "Pushbullet Notifications"
+    },
+    "version": "0.0.1",
+    "compatibility": "0.x || 1.x",
+    "author": {
+        "name": "Ton Versteeg",
+        "email": "tonversteeg1@gmail.com"
+    },
+    "images": {
+      "large": "./assets/images/large.jpg",
+      "small": "./assets/images/small.jpg"
+    },
+    "category": "internet",
+    "description": {
+    "en": "Pushbullet notifications for Homey",
+    "nl": "Pushbullet notificatie voor Homey"
+    },
+    "permissions": ["homey:manager:ledring"
+    ],
+    "flow": {
+        "actions": [
+        {
+            "id": "pushbulletSend",
+            "title": {
+                "en": "Pushbullet notification",
+                "nl": "Pushbullet notificatie"
+            },
+            "args": [
+              {
+                  "name":"message",
+                  "type":"text",
+                  "placeholder":{
+                     "en":"Message",
+                     "nl":"Bericht"
+                  }
+               }
+            ]
+        },
+        {
+            "id": "pushbulletSend_device",
+            "title": {
+                "en": "Pushbullet notification (Device)",
+                "nl": "Pushbullet notificatie (Apparaat)"
+            },
+            "args": [
+              {
+                  "name":"device",
+                  "type":"autocomplete",
+                  "placeholder":{
+                     "en":"Device name",
+                     "nl":"Apparaat naam"
+                  }
+            	},
+              {
+                  "name":"message",
+                  "type":"text",
+                  "placeholder":{
+                     "en":"Message",
+                     "nl":"Bericht"
+                  }
+               }
+            ]
+        }
+      ]
+    },
+    "dependencies": {
+    		"Pushbullet": "*"
+    }
+}
