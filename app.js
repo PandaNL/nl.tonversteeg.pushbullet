@@ -59,7 +59,7 @@ function pushbulletSend ( pToken , pMessage, pDeviceParams) {
 	if (pToken != ""){
 		var pusher = new Pushbullet(pToken)
 
-		pusher.note(pDeviceParams, 'Homey', pMessage, function(error, response) {
+		pusher.note(pDeviceParams, pMessage, function(error, response) {
 				// response is the JSON response from the API
 				if (response != null){
 					if (response.active == true) {
