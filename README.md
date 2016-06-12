@@ -12,3 +12,14 @@ If the Pushbullet app is useful to you, buy me a beer!
 
 [pp-donate-link]: https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=D8RA9P824YZ62&lc=NL&item_name=Pushbullet%2dHomey&currency_code=EUR&bn=PP%2dDonationsBF%3abtn_donateCC_LG%2egif%3aNonHosted
 [pp-donate-image]: https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif
+
+### Changelog
+
+0.0.3
+
+- Added check to see if Message isn't empty to fix app crash
+- Added Insight logging support
+
+0.0.2
+
+- Fixed bug where IOS devices would not show message in notification screen.

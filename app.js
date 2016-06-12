@@ -16,6 +16,7 @@ var ledringPreference = false;
 Homey.manager('flow').on('action.pushbulletSend', function( callback, args ){
 		if( typeof pushbulletToken == 'undefined' || pushbulletToken == '') return callback( new Error("Pushbullet not logged in under settings!") );
 		var pMessage = args.message;
+		if( typeof pMessage == 'undefined' || pMessage == null || pMessage == '') return callback( new Error("Message cannot be empty!") );
 		var pDeviceParams = '';
 		pushbulletSend ( pushbulletToken, pMessage);
     callback( null, true ); // we've fired successfully
@@ -24,6 +25,7 @@ Homey.manager('flow').on('action.pushbulletSend', function( callback, args ){
 Homey.manager('flow').on('action.pushbulletSend_device', function( callback, args ){
 		if( typeof pushbulletToken == 'undefined' || pushbulletToken == '') return callback( new Error("Pushbullet not logged in under settings!") );
 		var pMessage = args.message;
+		if( typeof pMessage == 'undefined' || pMessage == null || pMessage == '') return callback( new Error("Message cannot be empty!") );
 		var pDevice = args.device.iden;
 		if( pDevice == null || pDevice == '') return callback( new Error("No devices registered on this Pushover account!") );
 		pushbulletSend ( pushbulletToken, pMessage, pDevice);
@@ -63,6 +65,7 @@ function pushbulletSend ( pToken , pMessage, pDeviceParams) {
 				// response is the JSON response from the API
 				if (response != null){
 					if (response.active == true) {
+
 						if (ledringPreference == true){
 							LedAnimate("green", 3000);
 						}
@@ -72,6 +75,11 @@ function pushbulletSend ( pToken , pMessage, pDeviceParams) {
 						}
 					}
 				}
+		});
+
+		//Add send notification to Insights
+		Homey.manager('insights').createEntry( 'pushbullet_sendNotifications', 1, new Date(), function(err, success){
+				if( err ) return Homey.error(err);
 		});
 	}
 }
@@ -222,6 +230,21 @@ function authorize ( callback) {
 			req.end();
 		}
 	}
+/*
+	Create insight log
+*/
+function createInsightlog() {
+		Homey.manager('insights').createLog( 'pushbullet_sendNotifications', {
+	    label: {
+	        en: 'Send Notifications'
+	    },
+	    type: 'number',
+	    units: {
+	        en: 'notifications'
+	    },
+	    decimals: 0
+	});
+	}
 
 
 /*
@@ -261,6 +284,7 @@ var self = module.exports = {
 
 		Homey.log('Pushbullet - app ready');
 		pushbulletBoot();
+		createInsightlog();
 
 		Homey.manager('settings').on( 'set', function(settingname){
 
