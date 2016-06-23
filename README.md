@@ -7,7 +7,7 @@ This app lets you send Pushbullet notifications to use in flows on a Homey devic
 
 Use Then flow cards to send Push notifications to all devices or a single device
 
-[pb-image1] [pb-image2]
+[![PB Single][pb-image1]] [![PB All][pb-image2]]
 
 Or use the trigger card to trigger a flow by sending a Pushbullet from your device/webbrowser
 
