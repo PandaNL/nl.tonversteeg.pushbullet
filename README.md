@@ -15,6 +15,10 @@ If the Pushbullet app is useful to you, buy me a beer!
 
 ### Changelog
 
+0.0.4
+
+- Added trigger support, it is now possible to send Homey a notification, use the trigger card in your flows.
+
 0.0.3
 
 - Added check to see if Message isn't empty to fix app crash

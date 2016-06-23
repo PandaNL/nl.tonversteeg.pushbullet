@@ -3,12 +3,14 @@
 var https		= require('https');
 var querystring = require('querystring');
 var Pushbullet = require('pushbullet');
+var W3CWebSocket = require('websocket').w3cwebsocket;
 
 var account = [];
 var user_info = [];
 var devices = null;
 var pushbulletToken;
 var ledringPreference = false;
+var homeyDevice = null;
 
 /*
 	Flow cards
@@ -95,6 +97,7 @@ function pushbulletBoot () {
 	if (user_info != null){
 		pushbulletToken = user_info.token;
 	};
+	homeyDevice = Homey.manager('settings').get('homeyDevice');
 }
 
 /*
@@ -140,6 +143,80 @@ function getUserInfo ( token, callback) {
 			Homey.log('Pushbullet - Userinfo saved');
 			callback(true);
 		});
+}
+
+/*
+	Create device ID for Homey
+*/
+function createHomeyDevice ( token, callback) {
+		var pusher = new Pushbullet(token)
+
+		if (typeof homeyDevice == 'undefined' || homeyDevice == null){
+			pusher.createDevice('Homey', function(error, response){
+				Homey.manager('settings').set('homeyDevice', {
+					name : response.nickname,
+					iden : response.iden
+				});
+				homeyDevice = Homey.manager('settings').get('homeyDevice');
+				Homey.log('Pushbullet - Pushbullet device created for Homey');
+			});
+		}
+		callback(true);
+}
+
+/*
+	Listen for new Pushes
+*/
+function listenForPushbullet ( token ) {
+	Homey.log('Pushbullet - Starting listener')
+	var pusher = new Pushbullet(token);
+	if (homeyDevice != null){
+		var client = new W3CWebSocket('wss://stream.pushbullet.com/websocket/' + token);
+
+		client.onerror = function() {
+    	Homey.log('Pushbullet - Connection Error');
+		};
+
+		client.onopen = function() {
+    	Homey.log('Pushbullet - WebSocket Client Connected');
+		};
+
+		client.onclose = function() {
+    Homey.log('Pushbullet - echo-protocol Client Closed');
+		};
+
+		client.onmessage = function(e) {
+    if (typeof e.data === 'string') {
+				var listener = JSON.parse(e.data);
+        Homey.log("Pushbullet - Received: '" + e.data + "'");
+				if (listener.type == 'tickle' && listener.subtype == 'push'){
+					var options = {
+							limit: 10
+					};
+
+					// Search for pushes
+					pusher.history(options, function(error, response) {
+						if (response != null){
+							var tempPush = response;
+							for (var i = 0; i < tempPush.pushes.length; i++){
+								if (tempPush.pushes[i].active == true && tempPush.pushes[i].target_device_iden == homeyDevice.iden){
+									Homey.log(tempPush.pushes[i].body + ' ' + tempPush.pushes[i].iden);
+
+									// Trigger flow
+									Homey.manager('flow').trigger('pushbulletReceived', {
+										message: tempPush.pushes[i].body
+									});
+									// Delete push
+									pusher.deletePush(tempPush.pushes[i].iden, function(error, response) {});
+
+								}
+							}
+						}
+					});
+				}
+    	}
+		};
+	}
 }
 
 
@@ -216,6 +293,13 @@ function authorize ( callback) {
 						getUserInfo(pushbulletToken, function (err, data) {
 							if (data = true) {
 								getDevices(pushbulletToken);
+								createHomeyDevice(pushbulletToken, function (err, data){
+									if (data = true) {
+										setTimeout(function(){
+											listenForPushbullet(pushbulletToken);
+										}, 5000);
+									}
+								});
 							}
 						});
 
@@ -285,6 +369,12 @@ var self = module.exports = {
 		Homey.log('Pushbullet - app ready');
 		pushbulletBoot();
 		createInsightlog();
+
+		if (homeyDevice != null){
+			setTimeout(function(){
+				listenForPushbullet(pushbulletToken);
+			}, 5000);
+		}
 
 		Homey.manager('settings').on( 'set', function(settingname){
 
