@@ -26,6 +26,10 @@ If the Pushbullet app is useful to you, buy me a beer!
 
 ### Changelog
 
+0.0.5
+
+- Added support for sending Image Token from Image Grabber app, or other apps that can generate a Image token
+
 0.0.4
 *** If already using Pushbullet before V0.0.4 be sure to sign off and on again on the settings page ***
 - Added trigger support, it is now possible to send Homey a notification, use the trigger card in your flows.

@@ -3,7 +3,7 @@
     "name": {
         "en": "Pushbullet Notifications"
     },
-    "version": "0.0.4",
+    "version": "0.0.5",
     "compatibility": "0.x || 1.x",
     "author": {
         "name": "Ton Versteeg",
@@ -60,6 +60,23 @@
                   "placeholder":{
                      "en":"Message",
                      "nl":"Bericht"
+                  }
+               }
+            ]
+        },
+        {
+            "id": "pushbulletSend_image",
+            "title": {
+                "en": "Send image",
+                "nl": "Verstuur afbeelding"
+            },
+            "args": [
+              {
+                  "name":"image",
+                  "type":"text",
+                  "placeholder":{
+                     "en":"Image token",
+                     "nl":"Afbeelding token"
                   }
                }
             ]

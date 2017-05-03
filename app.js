@@ -4,6 +4,7 @@ var https		= require('https');
 var querystring = require('querystring');
 var Pushbullet = require('pushbullet');
 var W3CWebSocket = require('websocket').w3cwebsocket;
+var fs = require('fs');
 
 var account = [];
 var user_info = [];
@@ -31,6 +32,15 @@ Homey.manager('flow').on('action.pushbulletSend_device', function( callback, arg
 		var pDevice = args.device.iden;
 		if( pDevice == null || pDevice == '') return callback( new Error("No devices registered on this Pushover account!") );
 		pushbulletSend ( pushbulletToken, pMessage, pDevice);
+    callback( null, true ); // we've fired successfully
+});
+
+Homey.manager('flow').on('action.pushbulletSend_image', function( callback, args ){
+		if( typeof pushbulletToken == 'undefined' || pushbulletToken == '') return callback( new Error("Pushbullet not logged in under settings!") );
+		var pImage = args.image;
+		if( typeof pImage == 'undefined' || pImage == null || pImage == '') return callback( new Error("Image token cannot be empty!") );
+		var pDeviceParams = '';
+		pushbulletSend_image ( pushbulletToken, pImage);
     callback( null, true ); // we've fired successfully
 });
 
@@ -77,6 +87,42 @@ function pushbulletSend ( pToken , pMessage, pDeviceParams) {
 						}
 					}
 				}
+		});
+
+		//Add send notification to Insights
+		Homey.manager('insights').createEntry( 'pushbullet_sendNotifications', 1, new Date(), function(err, success){
+				if( err ) return Homey.error(err);
+		});
+	}
+}
+
+/*
+ Decode image and upload
+ */
+function pushbulletSend_image ( pToken , pImage, pDeviceParams) {
+	if (pToken != ""){
+		var pusher = new Pushbullet(pToken)
+		var base64Data = pImage;
+
+		fs.writeFile("/userdata/pushbullet-image.jpg", base64Data, 'base64', function(err) {
+			console.log(err);
+			Homey.log('Pushbullet - File written');
+			});
+
+		pusher.file(pDeviceParams, '/userdata/pushbullet-image.jpg', function(error, response) {
+				// response is the JSON response from the API
+						if (response != null){
+							if (response.active == true) {
+
+								if (ledringPreference == true){
+									LedAnimate("green", 3000);
+								}
+							} else {
+								if (ledringPreference == true){
+									LedAnimate("red", 3000);
+								}
+							}
+						}
 		});
 
 		//Add send notification to Insights
