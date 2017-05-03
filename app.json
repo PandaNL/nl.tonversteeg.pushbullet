@@ -42,8 +42,8 @@
         {
             "id": "pushbulletSend_device",
             "title": {
-                "en": "Pushbullet notification (Device)",
-                "nl": "Pushbullet notificatie (Apparaat)"
+                "en": "Notification to device",
+                "nl": "Notificatie naar apparaat"
             },
             "args": [
               {
