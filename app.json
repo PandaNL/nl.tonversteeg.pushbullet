@@ -4,10 +4,19 @@
         "en": "Pushbullet Notifications"
     },
     "version": "0.0.5",
-    "compatibility": "0.x || 1.x",
+    "sdk": 2,
+    "compatibility": ">=2.0.0",
     "author": {
         "name": "Ton Versteeg",
         "email": "tonversteeg1@gmail.com"
+    },
+    "contributors": {
+      "developers": [
+        {
+          "name": "Cold Shiver",
+          "email": "coldshiver@gmail.com"
+        }
+      ]
     },
     "images": {
       "large": "./assets/images/large.jpg",
