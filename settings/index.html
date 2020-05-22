@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
     <head>
-
+        <script type="text/javascript" src="/homey.js" data-origin="settings"></script>
     </head>
     <body>
 
@@ -69,7 +69,7 @@
 
         var ledringPreference;
 
-        function onHomeyReady(){
+        function onHomeyReady(Homey){
 	          Homey.get('auth', function( err, settings ){
               if( err ) return Homey.alert(err, 'Error');
               var logged_in = ( settings && typeof settings.access_token == 'string' );
