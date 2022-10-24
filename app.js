@@ -1,64 +1,71 @@
 "use strict";
 
-var https		= require('https');
-var querystring = require('querystring');
-var Pushbullet = require('pushbullet');
-var W3CWebSocket = require('websocket').w3cwebsocket;
-var fs = require('fs');
+const Homey = require('homey');
+const https = require('https');
+const querystring = require('querystring');
+const Pushbullet = require('pushbullet');
+const W3CWebSocket = require('websocket').w3cwebsocket;
+const fs = require('fs');
 
-var account = [];
-var user_info = [];
-var devices = null;
-var pushbulletToken;
-var ledringPreference = false;
-var homeyDevice = null;
+let account = [];
+let user_info = [];
+let devices = null;
+let pushbulletToken;
+let ledringPreference = false;
+let homeyDevice = null;
+let INSIGHTS = null;
 
 /*
 	Flow cards
 */
-Homey.manager('flow').on('action.pushbulletSend', function( callback, args ){
-		if( typeof pushbulletToken == 'undefined' || pushbulletToken == '') return callback( new Error("Pushbullet not logged in under settings!") );
-		var pMessage = args.message;
-		if( typeof pMessage == 'undefined' || pMessage == null || pMessage == '') return callback( new Error("Message cannot be empty!") );
-		var pDeviceParams = '';
-		pushbulletSend ( pushbulletToken, pMessage);
-    callback( null, true ); // we've fired successfully
-});
+new Homey.FlowCardAction('pushbulletSend').register().registerRunListener(async (args, state) => {
+	return new Promise(function (resolve, reject) {
+		if (typeof pushbulletToken == 'undefined' || pushbulletToken == '') return reject(new Error("Pushbullet not logged in under settings!"));
+		const pMessage = args.message;
+		if (typeof pMessage == 'undefined' || pMessage == null || pMessage == '') return reject(new Error("Message cannot be empty!"));
+		pushbulletSend(pushbulletToken, pMessage);
+		return resolve(true); // we've fired successfully
+	});
+})
 
-Homey.manager('flow').on('action.pushbulletSend_device', function( callback, args ){
-		if( typeof pushbulletToken == 'undefined' || pushbulletToken == '') return callback( new Error("Pushbullet not logged in under settings!") );
-		var pMessage = args.message;
-		if( typeof pMessage == 'undefined' || pMessage == null || pMessage == '') return callback( new Error("Message cannot be empty!") );
-		var pDevice = args.device.iden;
-		if( pDevice == null || pDevice == '') return callback( new Error("No devices registered on this Pushover account!") );
-		pushbulletSend ( pushbulletToken, pMessage, pDevice);
-    callback( null, true ); // we've fired successfully
-});
+new Homey.FlowCardAction('pushbulletSend_device').register().registerRunListener(async (args, state) => {
+	return new Promise(function (resolve, reject) {
+		if (typeof pushbulletToken == 'undefined' || pushbulletToken == '') return reject(new Error("Pushbullet not logged in under settings!"));
+		const pMessage = args.message;
+		if (typeof pMessage == 'undefined' || pMessage == null || pMessage == '') return reject(new Error("Message cannot be empty!"));
+		const pDevice = args.device.iden;
+		if (pDevice == null || pDevice == '') return reject(new Error("No devices registered on this Pushover account!"));
+		pushbulletSend(pushbulletToken, pMessage, pDevice);
+		return resolve(true);
+	});
+}).getArgument('device')
+	.registerAutocompleteListener((query, args) => {
+		return new Promise(function (resolve, reject) {
+			const deviceSearchString = value.query;
+			const items = searchForDevicesByValue(deviceSearchString);
+			return resolve(items);
+		}); // we've fired successfully
+	});
 
-Homey.manager('flow').on('action.pushbulletSend_image', function( callback, args ){
-		if( typeof pushbulletToken == 'undefined' || pushbulletToken == '') return callback( new Error("Pushbullet not logged in under settings!") );
+new Homey.FlowCardAction('pushbulletSend_image').register().registerRunListener(async (args, state) => {
+	return new Promise(function (resolve, reject) {
+		if( typeof pushbulletToken == 'undefined' || pushbulletToken == '') return reject( new Error("Pushbullet not logged in under settings!") );
 		var pImage = args.image;
-		if( typeof pImage == 'undefined' || pImage == null || pImage == '') return callback( new Error("Image token cannot be empty!") );
-		var pDeviceParams = '';
+		if( typeof pImage == 'undefined' || pImage == null || pImage == '') return reject( new Error("Image token cannot be empty!") );
 		pushbulletSend_image ( pushbulletToken, pImage);
-    callback( null, true ); // we've fired successfully
-});
-
-Homey.manager('flow').on('action.pushbulletSend_device.device.autocomplete', function( callback, value ) {
-	var deviceSearchString = value.query;
-	var items = searchForDevicesByValue( deviceSearchString );
-	callback( null, items );
-});
+		return resolve(true); // we've fired successfully
+	});
+})
 
 /*
 	Search device function for auto-complete in flow card.
 */
 function searchForDevicesByValue ( value ) {
-	var possibleDevices = devices;
-	var tempItems = [];
-	for (var i = 0; i < devices.length; i++) {
-		var tempDevice = possibleDevices[i].nickname;
-		var tempIden = possibleDevices[i].iden;
+	const possibleDevices = devices;
+	const tempItems = [];
+	for (let i = 0; i < devices.length; i++) {
+		const tempDevice = possibleDevices[i].nickname;
+		const tempIden = possibleDevices[i].iden;
 		if ( tempDevice.indexOf(value) >= 0 ) {
 			tempItems.push({ icon: "", name: tempDevice, iden: tempIden });
 		}
@@ -71,7 +78,7 @@ function searchForDevicesByValue ( value ) {
  */
 function pushbulletSend ( pToken , pMessage, pDeviceParams) {
 	if (pToken != ""){
-		var pusher = new Pushbullet(pToken)
+		const pusher = new Pushbullet(pToken);
 
 		pusher.note(pDeviceParams, pMessage, function(error, response) {
 				// response is the JSON response from the API
@@ -90,7 +97,7 @@ function pushbulletSend ( pToken , pMessage, pDeviceParams) {
 		});
 
 		//Add send notification to Insights
-		Homey.manager('insights').createEntry( 'pushbullet_sendNotifications', 1, new Date(), function(err, success){
+		INSIGHTS.createEntry(1, new Date(), function(err, success){
 				if( err ) return Homey.error(err);
 		});
 	}
@@ -101,12 +108,12 @@ function pushbulletSend ( pToken , pMessage, pDeviceParams) {
  */
 function pushbulletSend_image ( pToken , pImage, pDeviceParams) {
 	if (pToken != ""){
-		var pusher = new Pushbullet(pToken)
-		var base64Data = pImage;
+		const pusher = new Pushbullet(pToken);
+		const base64Data = pImage;
 
 		fs.writeFile("/userdata/pushbullet-image.jpg", base64Data, 'base64', function(err) {
 			console.log(err);
-			Homey.log('Pushbullet - File written');
+			console.log('Pushbullet - File written');
 			});
 
 		pusher.file(pDeviceParams, '/userdata/pushbullet-image.jpg', function(error, response) {
@@ -126,8 +133,8 @@ function pushbulletSend_image ( pToken , pImage, pDeviceParams) {
 		});
 
 		//Add send notification to Insights
-		Homey.manager('insights').createEntry( 'pushbullet_sendNotifications', 1, new Date(), function(err, success){
-				if( err ) return Homey.error(err);
+		INSIGHTS.createEntry(1, new Date(), function (err, success) {
+			if (err) return Homey.error(err);
 		});
 	}
 }
@@ -137,26 +144,26 @@ function pushbulletSend_image ( pToken , pImage, pDeviceParams) {
 */
 function pushbulletBoot () {
 	devices = null;
-	devices = Homey.manager('settings').get('userdevices');
+	devices = Homey.ManagerSettings.get('userdevices');
 	user_info = null;
-	user_info = Homey.manager('settings').get('userinfo');
+	user_info = Homey.ManagerSettings.get('userinfo');
 	if (user_info != null){
 		pushbulletToken = user_info.token;
 	};
-	homeyDevice = Homey.manager('settings').get('homeyDevice');
+	homeyDevice = Homey.ManagerSettings.get('homeyDevice');
 }
 
 /*
 	Get users devices
 */
 function getDevices ( token) {
-	var pusher = new Pushbullet(token)
+	const pusher = new Pushbullet(token);
 
 	pusher.devices(function(err, response) {
 		if( response != null){
-			var tempDevices = response;
+			const tempDevices = response;
 			devices = [];
-			for (var i = 0; i < tempDevices.devices.length; i++){
+			for (let i = 0; i < tempDevices.devices.length; i++){
 
 				if(tempDevices.devices[i].active == true){
 					devices.push({
@@ -167,8 +174,8 @@ function getDevices ( token) {
 				};
 
 			};
-			Homey.manager('settings').set('userdevices', devices);
-			Homey.log('Pushbullet - Devices saved');
+			Homey.ManagerSettings.set('userdevices', devices);
+			console.log('Pushbullet - Devices saved');
 		};
 	});
 }
@@ -178,15 +185,15 @@ function getDevices ( token) {
 	Get user info and save in userinfo setting
 */
 function getUserInfo ( token, callback) {
-		var pusher = new Pushbullet(token)
+	const pusher = new Pushbullet(token);
 
-		pusher.me(function(err, response) {
-			Homey.manager('settings').set('userinfo', {
+	pusher.me(function(err, response) {
+			Homey.ManagerSettings.set('userinfo', {
 				name	: response.name,
 				email : response.email,
 				token : token
 		});
-			Homey.log('Pushbullet - Userinfo saved');
+			console.log('Pushbullet - Userinfo saved');
 			callback(true);
 		});
 }
@@ -195,16 +202,16 @@ function getUserInfo ( token, callback) {
 	Create device ID for Homey
 */
 function createHomeyDevice ( token, callback) {
-		var pusher = new Pushbullet(token)
+	const pusher = new Pushbullet(token);
 
-		if (typeof homeyDevice == 'undefined' || homeyDevice == null){
+	if (typeof homeyDevice == 'undefined' || homeyDevice == null){
 			pusher.createDevice('Homey', function(error, response){
-				Homey.manager('settings').set('homeyDevice', {
+				Homey.ManagerSettings.set('homeyDevice', {
 					name : response.nickname,
 					iden : response.iden
 				});
-				homeyDevice = Homey.manager('settings').get('homeyDevice');
-				Homey.log('Pushbullet - Pushbullet device created for Homey');
+				homeyDevice = Homey.ManagerSettings.get('homeyDevice');
+				console.log('Pushbullet - Pushbullet device created for Homey');
 			});
 		}
 		callback(true);
@@ -214,39 +221,39 @@ function createHomeyDevice ( token, callback) {
 	Listen for new Pushes
 */
 function listenForPushbullet ( token ) {
-	Homey.log('Pushbullet - Starting listener')
-	var pusher = new Pushbullet(token);
+	console.log('Pushbullet - Starting listener')
+	const pusher = new Pushbullet(token);
 	if (homeyDevice != null){
-		var client = new W3CWebSocket('wss://stream.pushbullet.com/websocket/' + token);
+		const client = new W3CWebSocket('wss://stream.pushbullet.com/websocket/' + token);
 
 		client.onerror = function() {
-    	Homey.log('Pushbullet - Connection Error');
+    	console.log('Pushbullet - Connection Error');
 		};
 
 		client.onopen = function() {
-    	Homey.log('Pushbullet - WebSocket Client Connected');
+    	console.log('Pushbullet - WebSocket Client Connected');
 		};
 
 		client.onclose = function() {
-    Homey.log('Pushbullet - echo-protocol Client Closed');
+    console.log('Pushbullet - echo-protocol Client Closed');
 		};
 
 		client.onmessage = function(e) {
     if (typeof e.data === 'string') {
-				var listener = JSON.parse(e.data);
-        Homey.log("Pushbullet - Received: '" + e.data + "'");
+		const listener = JSON.parse(e.data);
+		console.log("Pushbullet - Received: '" + e.data + "'");
 				if (listener.type == 'tickle' && listener.subtype == 'push'){
-					var options = {
-							limit: 10
+					const options = {
+						limit: 10
 					};
 
 					// Search for pushes
 					pusher.history(options, function(error, response) {
 						if (response != null){
-							var tempPush = response;
-							for (var i = 0; i < tempPush.pushes.length; i++){
+							const tempPush = response;
+							for (let i = 0; i < tempPush.pushes.length; i++){
 								if (tempPush.pushes[i].active == true && tempPush.pushes[i].target_device_iden == homeyDevice.iden){
-									Homey.log(tempPush.pushes[i].body + ' ' + tempPush.pushes[i].iden);
+									console.log(tempPush.pushes[i].body + ' ' + tempPush.pushes[i].iden);
 
 									// Trigger flow
 									Homey.manager('flow').trigger('pushbulletReceived', {
@@ -273,7 +280,7 @@ function authorize ( callback) {
 
 	callback = callback || function(){}
 
-	var callback_called = false;
+	let callback_called = false;
 
 	Homey.manager('cloud').generateOAuth2Callback(
 		'https://www.pushbullet.com/authorize?client_id=' + Homey.env.CLIENT_ID + '&redirect_uri=' + Homey.env.REDIRECT_URI + '&response_type=code',
@@ -283,7 +290,7 @@ function authorize ( callback) {
 
 	function onGotUrl( err, url ){
 		if( err ) return callback(err);
-		Homey.log('Pushbullet - Got url!');
+		console.log('Pushbullet - Got url!');
 		callback( null, url );
 		callback_called = true;
 	}
@@ -294,16 +301,16 @@ function authorize ( callback) {
 			return Homey.error(err);
 		}
 
-		Homey.log('Pushbullet - Got authorization code!');
+		console.log('Pushbullet - Got authorization code!');
 
-		var data = querystring.stringify({
-					'client_id'		: Homey.env.CLIENT_ID,
-	        'client_secret'	: Homey.env.CLIENT_SECRET,
-	        'code'			: code,
-					'grant_type'	: 'authorization_code'
+		const data = querystring.stringify({
+			'client_id': Homey.env.CLIENT_ID,
+			'client_secret': Homey.env.CLIENT_SECRET,
+			'code': code,
+			'grant_type': 'authorization_code'
 		});
 
-		var options = {
+		const options = {
 			host: 'api.pushbullet.com',
 			path: '/oauth2/token',
 			method: 'POST',
@@ -313,9 +320,9 @@ function authorize ( callback) {
 			}
 		};
 
-		var req = https.request(options, function(res) {
+		const req = https.request(options, function (res) {
 			res.setEncoding('utf8');
-			var body = "";
+			let body = "";
 			res.on('data', function (chunk) {
 				body += chunk;
 			});
@@ -328,35 +335,35 @@ function authorize ( callback) {
 					    return Homey.error( "body not ok" );
 					}
 
-				    Homey.manager('settings').set('auth', {
-					    access_token	: body.access_token
+					Homey.ManagerSettings.set('auth', {
+						access_token: body.access_token
 					});
 
-						pushbulletToken = body.access_token;
+					pushbulletToken = body.access_token;
 
-						Homey.manager('api').realtime('authorized', true);
+					Homey.manager('api').realtime('authorized', true);
 
-						getUserInfo(pushbulletToken, function (err, data) {
-							if (data = true) {
-								getDevices(pushbulletToken);
-								createHomeyDevice(pushbulletToken, function (err, data){
-									if (data = true) {
-										setTimeout(function(){
-											listenForPushbullet(pushbulletToken);
-										}, 5000);
-									}
-								});
-							}
-						});
+					getUserInfo(pushbulletToken, function (err, data) {
+						if (data = true) {
+							getDevices(pushbulletToken);
+							createHomeyDevice(pushbulletToken, function (err, data) {
+								if (data = true) {
+									setTimeout(function () {
+										listenForPushbullet(pushbulletToken);
+									}, 5000);
+								}
+							});
+						}
+					});
 
-					} catch(e){
-					    Homey.manager('api').realtime('authorized', false);
-						Homey.error(e);
-					}
-				})
-			});
+				} catch (e) {
+					Homey.manager('api').realtime('authorized', false);
+					Homey.error(e);
+				}
+			})
+		});
 
-			req.write(data);
+		req.write(data);
 			req.end();
 		}
 	}
@@ -364,18 +371,35 @@ function authorize ( callback) {
 	Create insight log
 */
 function createInsightlog() {
-		Homey.manager('insights').createLog( 'pushbullet_sendNotifications', {
-	    label: {
-	        en: 'Send Notifications'
-	    },
-	    type: 'number',
-	    units: {
-	        en: 'notifications'
-	    },
-	    decimals: 0
-	});
-	}
-
+	const logName = 'pushbullet_sendNotifications';
+	Homey.ManagerInsights.createLog(logName, {
+			title: {
+				en: 'Send Notifications'
+			},
+			type: 'number',
+			units: {
+				en: 'notifications'
+			},
+			decimals: 0
+		},
+		function (err, log) {
+			if (err) {
+				if (err.code === 409) { // Log already created
+					if (log) INSIGHTS = log;
+					else { // Get log if needed
+						Homey.ManagerInsights.getLog(logName, function (err, log) {
+							INSIGHTS = log;
+						});
+					}
+				} else {
+					console.error(err)
+				}
+			} else {
+				INSIGHTS = log;
+			}
+		}
+	);
+}
 
 /*
 	Animation for ledring
@@ -409,33 +433,34 @@ Homey.manager('ledring').animate(
 /*
 	Init Pushbullet app
 */
-var self = module.exports = {
-	init: function () {
-
-		Homey.log('Pushbullet - app ready');
+class App extends Homey.App {
+	onInit() {
+		console.log('Pushbullet - app ready');
 		pushbulletBoot();
 		createInsightlog();
 
-		if (homeyDevice != null){
-			setTimeout(function(){
+		if (homeyDevice != null) {
+			setTimeout(function () {
 				listenForPushbullet(pushbulletToken);
 			}, 5000);
 		}
 
-		Homey.manager('settings').on( 'set', function(settingname){
-
-			if(settingname == 'ledring') {
-			Homey.log('Pushbullet - Ledring preference has been changed...');
-			account = Homey.manager('settings').get('ledring');
-			if (account != null) {
-				ledringPreference = account['ledring'];
-			} else {
-			Homey.log("Pushbullet - No account configured yet");
+		Homey.ManagerSettings.on('set', function (settingname) {
+			if (settingname == 'ledring') {
+				console.log('Pushbullet - Ledring preference has been changed...');
+				account = Homey.ManagerSettings.get('ledring');
+				if (account != null) {
+					ledringPreference = account['ledring'];
+				} else {
+					console.log("Pushbullet - No account configured yet");
+				}
 			}
-		}
 		});
+	}
 
-	},
-
-	authorize: authorize
+	authorize() {
+		return authorize()
+	}
 }
+
+module.exports = App;
